@@ -40,6 +40,7 @@ Aturan:
 - Jika tidak tahu atau tidak yakin, katakan jujur dan minta user memperjelas.
 - Jangan minta data sensitif seperti NIK lengkap, OTP, password, rekening.
 - Buat jawaban dengan singkat padat dan jelas, jangan buat panjang lebar.
+- untuk informasi seputar desa jeruk anda dapat melihat lewawt "wikipedia" atau web resmi desa jeruk di "desajeruk.id"
 """.strip()
 
 
@@ -50,21 +51,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
     await update.message.reply_text(text)
 
-WELCOME_TEXT = (
-    "Halo, aku DJerukBot 🤖🌿\n"
-    "Aku bisa bantu info Desa Jeruk, layanan, agenda, fasilitas, dan lainnya 🙂✅\n\n"
-    "Silakan ketik pertanyaanmu ya 🙂📌"
-)
-
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_text = (update.message.text or "").strip()
     if not user_text:
-        return
-    
-    # auto-start if first time
-    if not context.user_data.get("welcomed"):
-        context.user_data["welcomed"] = True
-        await update.message.reply_text(WELCOME_TEXT)
         return
 
     await update.message.chat.send_action(ChatAction.TYPING)
@@ -86,7 +75,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         except Exception:
             pass
         await update.message.reply_text(
-            "mohon tunggu... ⏳🙂\n\n"
             "Maaf ya, JerukBot kehabisan waktu saat memproses jawaban 😅\n"
             "Coba kirim ulang pertanyaanmu ya 🙂🙏"
         )
@@ -97,7 +85,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         except Exception:
             pass
         await update.message.reply_text(
-            "mohon tunggu... ⏳🙂\n\n"
             "Maaf ya, JerukBot lagi error 😅🔧\n"
             "Coba lagi sebentar ya 🙂🙏"
         )
@@ -105,7 +92,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def get_gemini_response(query: str) -> str:
     if not GEMINI_API_KEY:
-        return "mohon tunggu... ⏳🙂\n\nAPI key Gemini belum diset di .env ya 🙂🙏"
+        return "nAPI key Gemini belum diset di .env ya 🙂🙏"
 
     model = genai.GenerativeModel(MODEL_NAME)
     prompt = f"{SYSTEM_MESSAGE}\n\nPertanyaan pengguna:\n{query}"
@@ -121,11 +108,7 @@ async def get_gemini_response(query: str) -> str:
 
     text = (getattr(result, "text", None) or "").strip()
     if not text:
-        return "mohon tunggu... ⏳🙂\n\nMaaf ya, JerukBot tidak mendapat jawaban dari Gemini 😅🙏"
-
-    # pastikan prefix sesuai aturan
-    if not text.lower().startswith("mohon tunggu"):
-        text = "mohon tunggu... ⏳🙂\n\n" + text
+        return "Maaf ya, JerukBot tidak mendapat jawaban dari Gemini 😅🙏"
 
     return text
 
