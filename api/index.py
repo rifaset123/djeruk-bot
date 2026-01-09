@@ -1,4 +1,3 @@
-# api/webhook.py
 import os
 import asyncio
 from fastapi import FastAPI, Request, Header, BackgroundTasks
@@ -29,12 +28,14 @@ async def _ensure_ptb() -> Application:
             _inited = True
     return _ptb_app
 
+# health check
 @app.get("/")
 async def health():
     return {"ok": True}
 
-@app.post("/")
-async def webhook(
+# Telegram will call https://DOMAIN/api/webhook
+@app.post("/webhook")
+async def telegram_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
     x_telegram_bot_api_secret_token: str | None = Header(default=None),
