@@ -1,30 +1,32 @@
+# api/webhook.py
 import os
 import asyncio
-from fastapi import FastAPI, Request, Header
+from fastapi import FastAPI, Request, Header, BackgroundTasks
 from telegram import Update
 from telegram.ext import Application
-from fastapi import BackgroundTasks
 
 from bot_app import build_application
 
-TELEGRAM_TOKEN = os.environ["TELEGRAM_TOKEN"]
-WEBHOOK_SECRET = os.environ.get("TELEGRAM_WEBHOOK_SECRET", "")
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+if not TELEGRAM_TOKEN:
+    raise RuntimeError("Missing TELEGRAM_TOKEN in Vercel Environment Variables")
 
-app = FastAPI()  # ini WAJIB top-level dan namanya "app"
+WEBHOOK_SECRET = os.getenv("TELEGRAM_WEBHOOK_SECRET", "")
+
+app = FastAPI()
 
 _ptb_app: Application | None = None
-_started = False
+_inited = False
 _lock = asyncio.Lock()
 
-async def _ensure_ptb():
-    global _ptb_app, _started
+async def _ensure_ptb() -> Application:
+    global _ptb_app, _inited
     async with _lock:
         if _ptb_app is None:
             _ptb_app = build_application(TELEGRAM_TOKEN)
-        if not _started:
+        if not _inited:
             await _ptb_app.initialize()
-            await _ptb_app.start()
-            _started = True
+            _inited = True
     return _ptb_app
 
 @app.get("/")
@@ -43,7 +45,6 @@ async def webhook(
     data = await request.json()
     ptb = await _ensure_ptb()
 
-    # enqueue processing and return immediately
     background_tasks.add_task(_process_update, ptb, data)
     return {"ok": True}
 
