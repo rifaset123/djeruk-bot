@@ -3,6 +3,7 @@ import asyncio
 from fastapi import FastAPI, Request, Header
 from telegram import Update
 from telegram.ext import Application
+from fastapi import BackgroundTasks
 
 from bot_app import build_application
 
@@ -33,6 +34,7 @@ async def health():
 @app.post("/")
 async def webhook(
     request: Request,
+    background_tasks: BackgroundTasks,
     x_telegram_bot_api_secret_token: str | None = Header(default=None),
 ):
     if WEBHOOK_SECRET and x_telegram_bot_api_secret_token != WEBHOOK_SECRET:
@@ -41,6 +43,10 @@ async def webhook(
     data = await request.json()
     ptb = await _ensure_ptb()
 
+    # enqueue processing and return immediately
+    background_tasks.add_task(_process_update, ptb, data)
+    return {"ok": True}
+
+async def _process_update(ptb: Application, data: dict):
     update = Update.de_json(data, ptb.bot)
     await ptb.process_update(update)
-    return {"ok": True}
